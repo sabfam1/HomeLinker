@@ -15,9 +15,6 @@
     --school-accent2: #3fb950;
     --school-text: #e6edf3;
     --school-muted: #7d8590;
-    --phone-accent: #2563eb;
-    --phone-text: #1c1917;
-    --phone-muted: #78716c;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -198,6 +195,44 @@
   .phone  .bubble.received { background: #e9e9eb; color: #1c1917; border-bottom-left-radius: 4px; }
   .phone  .bubble.sent     { background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
 
+  /* ── IMAGE BUBBLES ── */
+  .bubble.media { padding: 5px; background: transparent !important; border: none !important; }
+  .bubble.media img {
+    max-width: 220px; max-height: 280px; border-radius: 14px;
+    display: block; cursor: pointer; object-fit: cover;
+    transition: opacity 0.2s;
+  }
+  .bubble.media img:hover { opacity: 0.9; }
+  .bubble.media .ts { padding: 2px 4px; }
+
+  /* sent media bubble — keep border-radius override */
+  .msg-row.sent .bubble.media img { border-bottom-right-radius: 4px; }
+  .msg-row.received .bubble.media img { border-bottom-left-radius: 4px; }
+
+  /* ── PDF CARD ── */
+  .pdf-card {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border-radius: 14px; max-width: 220px; cursor: pointer; text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .pdf-card:hover { opacity: 0.85; }
+  .school .msg-row.received .pdf-card { background: #161b22; border: 1px solid #30363d; }
+  .school .msg-row.sent     .pdf-card { background: #58a6ff; }
+  .phone  .msg-row.received .pdf-card { background: #e9e9eb; }
+  .phone  .msg-row.sent     .pdf-card { background: #2563eb; }
+  .pdf-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .pdf-info { min-width: 0; }
+  .pdf-name { font-size: 0.78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+  .school .msg-row.received .pdf-name { color: #e6edf3; }
+  .school .msg-row.sent     .pdf-name { color: #fff; }
+  .phone  .msg-row.received .pdf-name { color: #1c1917; }
+  .phone  .msg-row.sent     .pdf-name { color: #fff; }
+  .pdf-size { font-size: 0.68rem; opacity: 0.6; font-family: 'DM Mono', monospace; }
+  .school .msg-row.received .pdf-size { color: #7d8590; }
+  .school .msg-row.sent     .pdf-size { color: rgba(255,255,255,0.7); }
+  .phone  .msg-row.received .pdf-size { color: #78716c; }
+  .phone  .msg-row.sent     .pdf-size { color: rgba(255,255,255,0.7); }
+
   .bubble .ts { display: block; font-size: 0.63rem; margin-top: 3px; opacity: 0.5; font-family: 'DM Mono', monospace; text-align: right; }
 
   .small-avatar { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
@@ -212,9 +247,21 @@
   .school .empty-state p { color: #7d8590; font-size: 0.85rem; }
   .phone  .empty-state p { color: #78716c;  font-size: 0.85rem; }
 
+  /* ── INPUT AREA ── */
   .input-area { padding: 10px 14px; display: flex; gap: 8px; align-items: flex-end; }
   .school .input-area { background: #161b22; border-top: 1px solid #30363d; }
   .phone  .input-area { background: #fff;    border-top: 1px solid #e8e4dc; }
+
+  /* attach button */
+  .attach-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-size: 1.1rem; transition: transform 0.15s, opacity 0.2s;
+  }
+  .attach-btn:hover { transform: scale(1.08); }
+  .attach-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .school .attach-btn { background: #21262d; border: 1px solid #30363d; color: #7d8590; }
+  .phone  .attach-btn { background: #f0f0f0; color: #78716c; }
 
   textarea {
     flex: 1; resize: none; border-radius: 12px; padding: 9px 13px;
@@ -237,6 +284,56 @@
   .send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
   .school .send-btn { background: #58a6ff; color: #0d1117; }
   .phone  .send-btn { background: #2563eb; color: #fff; }
+
+  /* ── FILE PREVIEW ── */
+  #file-preview-bar {
+    display: none; padding: 8px 14px; gap: 8px; align-items: center;
+    font-size: 0.78rem; border-top: 1px solid;
+  }
+  .school #file-preview-bar { background: #161b22; border-color: #30363d; color: #e6edf3; }
+  .phone  #file-preview-bar { background: #fff; border-color: #e8e4dc; color: #1c1917; }
+  #file-preview-bar.visible { display: flex; }
+  #fp-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+  #fp-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'DM Mono', monospace; font-size: 0.72rem; }
+  #fp-size { font-family: 'DM Mono', monospace; font-size: 0.68rem; opacity: 0.5; white-space: nowrap; }
+  #fp-clear {
+    background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px;
+    opacity: 0.5; transition: opacity 0.2s;
+  }
+  #fp-clear:hover { opacity: 1; }
+  .school #fp-clear { color: #e6edf3; }
+  .phone  #fp-clear { color: #1c1917; }
+
+  /* ── UPLOAD PROGRESS ── */
+  .upload-progress {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    border-radius: 12px; font-size: 0.78rem;
+  }
+  .school .upload-progress { background: #161b22; border: 1px solid #30363d; color: #7d8590; }
+  .phone  .upload-progress { background: #e9e9eb; color: #78716c; }
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid transparent; animation: spin 0.8s linear infinite;
+  }
+  .school .spinner { border-top-color: #58a6ff; border-right-color: #58a6ff44; border-bottom-color: #58a6ff44; border-left-color: #58a6ff44; }
+  .phone  .spinner { border-top-color: #2563eb; border-right-color: #2563eb44; border-bottom-color: #2563eb44; border-left-color: #2563eb44; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── LIGHTBOX ── */
+  #lightbox {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
+    cursor: zoom-out;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 10px; object-fit: contain; }
+  #lb-close {
+    position: fixed; top: 18px; right: 20px; background: rgba(255,255,255,0.12);
+    border: none; color: #fff; font-size: 1.4rem; width: 38px; height: 38px;
+    border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  #lb-close:hover { background: rgba(255,255,255,0.25); }
 
   .status-bar { padding: 4px 14px; font-size: 0.67rem; font-family: 'DM Mono', monospace; display: flex; align-items: center; gap: 5px; }
   .school .status-bar { background: #161b22; color: #7d8590; border-top: 1px solid #30363d; }
@@ -351,7 +448,6 @@
   <span class="reset-link" onclick="resetConfig()">Change Firebase config</span>
 </div>
 
-
 <!-- CHAT -->
 <div id="chat-screen" class="screen">
   <div class="chat-header">
@@ -363,15 +459,31 @@
   <div class="messages" id="messages">
     <div class="empty-state" id="empty-state"><span style="font-size:2rem">💬</span><p>No messages yet — say hi!</p></div>
   </div>
+  <div id="file-preview-bar">
+    <img id="fp-thumb" src="" alt="" style="display:none">
+    <span id="fp-pdf-icon" style="font-size:1.6rem;display:none">📄</span>
+    <span id="fp-name"></span>
+    <span id="fp-size"></span>
+    <button id="fp-clear" onclick="clearPendingFile()">✕</button>
+  </div>
   <div class="status-bar">
     <div class="status-dot ok" id="status-dot"></div>
     <span id="status-text">Connecting…</span>
   </div>
   <div class="input-area">
+    <button class="attach-btn" id="attach-btn" onclick="triggerFileInput()" title="Attach image or PDF">📎</button>
+    <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,application/pdf"
+           style="display:none" onchange="handleFileSelected(event)">
     <textarea id="msg-input" rows="1" placeholder="Type a message…"
       onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
     <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
   </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lb-close" onclick="closeLightbox()">✕</button>
+  <img id="lb-img" src="" alt="">
 </div>
 
 <!-- DEBUG -->
@@ -419,7 +531,6 @@ function refreshEnv() {
     `<b>Channel:</b> ${cfg?.channel||'—'}`,
     `<b>Mode:</b> ${myMode||'not selected'}`,
     `<b>Firebase init:</b> ${dbReady?'✅':'❌'}`,
-    `<b>Webhook set:</b> ${loadWebhook()?'✅':'❌'}`,
     `<b>Protocol:</b> ${location.protocol}`,
     `<b>Origin:</b> ${location.origin}`,
     `<b>UA:</b> ${navigator.userAgent.substring(0,72)}`,
@@ -554,7 +665,6 @@ window.startChat = (mode) => {
     document.getElementById('hdr-sub').textContent = 'HomeLink · live';
   }
 
-  // Alert button always visible on desktop — it now pushes via Firebase, no local network needed
   const alertBtn = document.getElementById('alert-btn');
   if (alertBtn) alertBtn.style.display = (mode === 'school') ? 'inline-block' : 'none';
 
@@ -568,7 +678,9 @@ window.startChat = (mode) => {
 window.goBack = () => {
   if (unsubMessages) { unsubMessages(); unsubMessages = null; }
   myMode = null;
+  pendingFile = null;
   document.body.className = '';
+  hideFpBar();
   showScreen('mode-screen');
 };
 
@@ -586,7 +698,7 @@ function subscribeMessages() {
     const msgs = [];
     snapshot.forEach(child => {
       const d = child.val();
-      msgs.push({ key: child.key, from: d.from, text: d.text, ts: d.ts || 0 });
+      msgs.push({ key: child.key, from: d.from, text: d.text, ts: d.ts || 0, type: d.type || 'text', data: d.data, filename: d.filename, filesize: d.filesize });
     });
     dlog('ok', `onValue fired — ${msgs.length} messages`);
     renderMessages(msgs);
@@ -600,40 +712,196 @@ function subscribeMessages() {
   });
 }
 
+// ── FILE HANDLING ──
+const MAX_IMAGE_SIZE = 700 * 1024;   // 700 KB after compression
+const MAX_PDF_SIZE   = 700 * 1024;   // 700 KB raw (base64 ≈ 933 KB < 1 MB node limit)
+let pendingFile = null;  // { type, data (base64), filename, filesize, mimeType, thumbSrc }
+
+window.triggerFileInput = () => document.getElementById('file-input').click();
+
+window.handleFileSelected = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+
+  dlog('info', `File selected: ${file.name} (${fmtBytes(file.size)}) [${file.type}]`);
+
+  const isPdf   = file.type === 'application/pdf';
+  const isImage = ['image/png','image/jpeg','image/webp'].includes(file.type);
+
+  if (!isPdf && !isImage) {
+    alert('Only PNG, JPG, WEBP, and PDF files are supported.');
+    return;
+  }
+
+  if (isPdf) {
+    if (file.size > MAX_PDF_SIZE) {
+      alert(`PDF is too large (${fmtBytes(file.size)}). Max size is 700 KB.\n\nTip: compress it at ilovepdf.com first.`);
+      return;
+    }
+    const b64 = await fileToBase64(file);
+    pendingFile = { type: 'pdf', data: b64, filename: file.name, filesize: file.size, mimeType: file.type };
+    showFpBar(null, file.name, file.size, false);
+    dlog('ok', `PDF ready: ${file.name}`);
+  } else {
+    // Compress image
+    try {
+      const compressed = await compressImage(file);
+      dlog('ok', `Image compressed: ${fmtBytes(file.size)} → ${fmtBytes(compressed.blob.size)}`);
+      if (compressed.blob.size > MAX_IMAGE_SIZE) {
+        alert(`Image is still too large after compression (${fmtBytes(compressed.blob.size)}). Please use a smaller image.`);
+        return;
+      }
+      const b64 = await blobToBase64(compressed.blob);
+      pendingFile = { type: 'image', data: b64, filename: file.name, filesize: compressed.blob.size, mimeType: compressed.mime, thumbSrc: compressed.thumbSrc };
+      showFpBar(compressed.thumbSrc, file.name, compressed.blob.size, true);
+    } catch(err) {
+      dlog('err', 'Image compression failed: ' + err.message);
+      alert('Could not process image: ' + err.message);
+    }
+  }
+};
+
+function showFpBar(thumbSrc, name, size, isImage) {
+  const bar = document.getElementById('file-preview-bar');
+  const thumb = document.getElementById('fp-thumb');
+  const pdfIcon = document.getElementById('fp-pdf-icon');
+  bar.classList.add('visible');
+  if (isImage && thumbSrc) {
+    thumb.src = thumbSrc; thumb.style.display = 'block';
+    pdfIcon.style.display = 'none';
+  } else {
+    thumb.style.display = 'none';
+    pdfIcon.style.display = 'inline';
+  }
+  document.getElementById('fp-name').textContent = name;
+  document.getElementById('fp-size').textContent = fmtBytes(size);
+}
+
+function hideFpBar() {
+  const bar = document.getElementById('file-preview-bar');
+  bar.classList.remove('visible');
+  document.getElementById('fp-thumb').src = '';
+}
+
+window.clearPendingFile = () => {
+  pendingFile = null;
+  hideFpBar();
+  dlog('info', 'Pending file cleared');
+};
+
+async function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX_DIM = 1280;
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM; }
+        else { width = Math.round(width * MAX_DIM / height); height = MAX_DIM; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const thumbCanvas = document.createElement('canvas');
+      thumbCanvas.width = 72; thumbCanvas.height = 72;
+      const tCtx = thumbCanvas.getContext('2d');
+      const s = Math.min(width, height);
+      const ox = (width-s)/2, oy = (height-s)/2;
+      tCtx.drawImage(img, ox, oy, s, s, 0, 0, 72, 72);
+      const thumbSrc = thumbCanvas.toDataURL('image/jpeg', 0.7);
+      canvas.toBlob((blob) => {
+        if (!blob) { reject(new Error('Canvas toBlob failed')); return; }
+        resolve({ blob, thumbSrc, mime: 'image/jpeg' });
+      }, 'image/jpeg', 0.82);
+    };
+    img.onerror = () => reject(new Error('Could not load image'));
+    img.src = url;
+  });
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = () => reject(new Error('FileReader error'));
+    r.readAsDataURL(file);
+  });
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = () => reject(new Error('FileReader error'));
+    r.readAsDataURL(blob);
+  });
+}
+
 // ── SEND ──
 window.sendMessage = async () => {
   const input = document.getElementById('msg-input');
   const text = input.value.trim();
-  if (!text || !dbReady) return;
+  const hasFile = !!pendingFile;
+
+  if (!text && !hasFile) return;
+  if (!dbReady) return;
 
   const btn = document.getElementById('send-btn');
+  const attachBtn = document.getElementById('attach-btn');
   btn.disabled = true;
+  attachBtn.disabled = true;
   input.value = '';
   input.style.height = 'auto';
 
-  dlog('info', `Sending: "${text.substring(0,40)}"`);
   try {
-    await push(chatRef, { from: myMode, text, ts: Date.now() });
-    dlog('ok', 'Message sent ✓');
+    if (hasFile) {
+      const f = pendingFile;
+      pendingFile = null;
+      hideFpBar();
+
+      dlog('info', `Sending ${f.type}: ${f.filename} (${fmtBytes(f.filesize)})`);
+
+      const payload = {
+        from: myMode,
+        ts: Date.now(),
+        type: f.type,        // 'image' | 'pdf'
+        data: f.data,        // base64 string
+        filename: f.filename,
+        filesize: f.filesize,
+        mimeType: f.mimeType,
+      };
+      // Attach caption if typed
+      if (text) payload.text = text;
+
+      await push(chatRef, payload);
+      dlog('ok', `${f.type} sent ✓`);
+    }
+
+    if (text && !hasFile) {
+      dlog('info', `Sending text: "${text.substring(0,40)}"`);
+      await push(chatRef, { from: myMode, text, ts: Date.now(), type: 'text' });
+      dlog('ok', 'Text sent ✓');
+    }
   } catch(e) {
     dlog('err', 'Send failed: ' + (e.message || e));
     setStatus('err', 'Send failed: ' + e.message);
-    input.value = text;
+    if (!hasFile) input.value = text;
   } finally {
     btn.disabled = false;
+    attachBtn.disabled = false;
     input.focus();
   }
 };
 
-// ── SEND ALERT (desktop side) ──
-// Pushes a signal into Firebase. The home device's subscribeAlerts() listener
-// picks it up and fires the webhook locally — bypassing any browser
-// private-network-access restrictions on the desktop entirely.
+// ── SEND ALERT ──
 window.sendAlert = async () => {
   if (!dbReady) { dlog('err', 'DB not ready for alert'); return; }
   const btn = document.getElementById('alert-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Sending…';
+  btn.disabled = true; btn.textContent = '⏳ Sending…';
   dlog('info', 'Pushing alert signal to Firebase…');
   try {
     const cfg = loadConfig();
@@ -643,8 +911,7 @@ window.sendAlert = async () => {
     dlog('ok', 'Alert pushed to Firebase ✓');
     setTimeout(() => { btn.textContent = '🚨 Alert'; btn.disabled = false; }, 3000);
   } catch(e) {
-    btn.textContent = '🚨 Alert';
-    btn.disabled = false;
+    btn.textContent = '🚨 Alert'; btn.disabled = false;
     dlog('err', 'Alert push failed: ' + e.message);
     alert('Alert failed: ' + e.message);
   }
@@ -667,7 +934,6 @@ function renderMessages(msgs) {
   if (_emptyState.parentNode) _emptyState.remove();
 
   const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
-
   container.innerHTML = '';
 
   let lastDate = null;
@@ -688,13 +954,55 @@ function renderMessages(msgs) {
     av.className = 'small-avatar';
     av.textContent = msg.from === 'school' ? '💻' : '📱';
 
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble ' + (isMine ? 'sent' : 'received');
-    bubble.textContent = msg.text;
-    const ts = document.createElement('span');
-    ts.className = 'ts';
-    ts.textContent = fmtTime(msg.ts);
-    bubble.appendChild(ts);
+    let bubble;
+
+    if (msg.type === 'image' && msg.data) {
+      bubble = document.createElement('div');
+      bubble.className = 'bubble media';
+      const imgEl = document.createElement('img');
+      imgEl.src = `data:${msg.mimeType||'image/jpeg'};base64,${msg.data}`;
+      imgEl.alt = msg.filename || 'image';
+      imgEl.loading = 'lazy';
+      imgEl.onclick = (e) => { e.stopPropagation(); openLightbox(imgEl.src); };
+      bubble.appendChild(imgEl);
+      if (msg.text) {
+        const cap = document.createElement('div');
+        cap.style.cssText = 'padding:4px 4px 2px;font-size:0.83rem;color:inherit;max-width:220px;';
+        cap.textContent = msg.text;
+        bubble.appendChild(cap);
+      }
+      const ts = document.createElement('span');
+      ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
+      bubble.appendChild(ts);
+
+    } else if (msg.type === 'pdf' && msg.data) {
+      bubble = document.createElement('div');
+      bubble.className = 'bubble media';
+      const dataUrl = `data:application/pdf;base64,${msg.data}`;
+      const card = document.createElement('a');
+      card.className = 'pdf-card';
+      card.href = dataUrl;
+      card.download = msg.filename || 'document.pdf';
+      card.onclick = (e) => e.stopPropagation();
+      card.innerHTML = `
+        <span class="pdf-icon">📄</span>
+        <div class="pdf-info">
+          <div class="pdf-name">${esc(msg.filename || 'document.pdf')}</div>
+          <div class="pdf-size">${fmtBytes(msg.filesize || 0)} · tap to download</div>
+        </div>`;
+      bubble.appendChild(card);
+      const ts = document.createElement('span');
+      ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
+      bubble.appendChild(ts);
+
+    } else {
+      bubble = document.createElement('div');
+      bubble.className = 'bubble ' + (isMine ? 'sent' : 'received');
+      bubble.textContent = msg.text || '';
+      const ts = document.createElement('span');
+      ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
+      bubble.appendChild(ts);
+    }
 
     if (!isMine) row.appendChild(av);
     row.appendChild(bubble);
@@ -705,6 +1013,16 @@ function renderMessages(msgs) {
   if (atBottom) container.scrollTop = container.scrollHeight;
   dlog('info', `Rendered ${msgs.length} messages`);
 }
+
+// ── LIGHTBOX ──
+window.openLightbox = (src) => {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+};
+window.closeLightbox = () => {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+};
 
 function setStatus(level, text) {
   document.getElementById('status-dot').className = 'status-dot ' + level;
@@ -721,6 +1039,12 @@ function fmtDate(ts) {
   const y = new Date(t); y.setDate(t.getDate()-1);
   if (d.toDateString() === y.toDateString()) return 'Yesterday';
   return d.toLocaleDateString([], {weekday:'long',month:'short',day:'numeric'});
+}
+function fmtBytes(b) {
+  if (!b) return '0 B';
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/(1024*1024)).toFixed(1) + ' MB';
 }
 
 // ── BOOT ──
