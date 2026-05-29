@@ -592,14 +592,26 @@ window.sendMessage = async () => {
 };
 
 // ── RENDER ──
+// Keep a reference to empty-state outside the DOM so innerHTML = '' can never destroy it.
+const _emptyState = document.getElementById('empty-state');
+_emptyState.remove(); // detach from DOM; we'll re-insert only when needed
+
 function renderMessages(msgs) {
   const container = document.getElementById('messages');
-  const empty = document.getElementById('empty-state');
 
-  if (msgs.length === 0) { empty.style.display = 'flex'; container.innerHTML = ''; container.appendChild(empty); return; }
-  empty.style.display = 'none';
+  if (msgs.length === 0) {
+    container.innerHTML = '';
+    container.appendChild(_emptyState);
+    _emptyState.style.display = 'flex';
+    return;
+  }
+
+  // Hide empty state if it's currently shown
+  if (_emptyState.parentNode) _emptyState.remove();
 
   const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+
+  // Remove all message rows and day labels, keeping nothing (empty-state already detached)
   container.innerHTML = '';
 
   let lastDate = null;
@@ -635,6 +647,7 @@ function renderMessages(msgs) {
   }
 
   if (atBottom) container.scrollTop = container.scrollHeight;
+  dlog('info', `Rendered ${msgs.length} messages`);
 }
 
 function setStatus(level, text) {
