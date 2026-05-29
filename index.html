@@ -195,21 +195,16 @@
   .phone  .bubble.received { background: #e9e9eb; color: #1c1917; border-bottom-left-radius: 4px; }
   .phone  .bubble.sent     { background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
 
-  /* ── IMAGE BUBBLES ── */
   .bubble.media { padding: 5px; background: transparent !important; border: none !important; }
   .bubble.media img {
     max-width: 220px; max-height: 280px; border-radius: 14px;
-    display: block; cursor: pointer; object-fit: cover;
-    transition: opacity 0.2s;
+    display: block; cursor: pointer; object-fit: cover; transition: opacity 0.2s;
   }
   .bubble.media img:hover { opacity: 0.9; }
   .bubble.media .ts { padding: 2px 4px; }
-
-  /* sent media bubble — keep border-radius override */
-  .msg-row.sent .bubble.media img { border-bottom-right-radius: 4px; }
+  .msg-row.sent     .bubble.media img { border-bottom-right-radius: 4px; }
   .msg-row.received .bubble.media img { border-bottom-left-radius: 4px; }
 
-  /* ── PDF CARD ── */
   .pdf-card {
     display: flex; align-items: center; gap: 10px; padding: 10px 14px;
     border-radius: 14px; max-width: 220px; cursor: pointer; text-decoration: none;
@@ -247,12 +242,10 @@
   .school .empty-state p { color: #7d8590; font-size: 0.85rem; }
   .phone  .empty-state p { color: #78716c;  font-size: 0.85rem; }
 
-  /* ── INPUT AREA ── */
   .input-area { padding: 10px 14px; display: flex; gap: 8px; align-items: flex-end; }
   .school .input-area { background: #161b22; border-top: 1px solid #30363d; }
   .phone  .input-area { background: #fff;    border-top: 1px solid #e8e4dc; }
 
-  /* attach button */
   .attach-btn {
     width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -285,7 +278,6 @@
   .school .send-btn { background: #58a6ff; color: #0d1117; }
   .phone  .send-btn { background: #2563eb; color: #fff; }
 
-  /* ── FILE PREVIEW ── */
   #file-preview-bar {
     display: none; padding: 8px 14px; gap: 8px; align-items: center;
     font-size: 0.78rem; border-top: 1px solid;
@@ -296,15 +288,11 @@
   #fp-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
   #fp-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'DM Mono', monospace; font-size: 0.72rem; }
   #fp-size { font-family: 'DM Mono', monospace; font-size: 0.68rem; opacity: 0.5; white-space: nowrap; }
-  #fp-clear {
-    background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px;
-    opacity: 0.5; transition: opacity 0.2s;
-  }
+  #fp-clear { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0 4px; opacity: 0.5; transition: opacity 0.2s; }
   #fp-clear:hover { opacity: 1; }
   .school #fp-clear { color: #e6edf3; }
   .phone  #fp-clear { color: #1c1917; }
 
-  /* ── UPLOAD PROGRESS ── */
   .upload-progress {
     display: flex; align-items: center; gap: 8px; padding: 8px 12px;
     border-radius: 12px; font-size: 0.78rem;
@@ -319,11 +307,9 @@
   .phone  .spinner { border-top-color: #2563eb; border-right-color: #2563eb44; border-bottom-color: #2563eb44; border-left-color: #2563eb44; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── LIGHTBOX ── */
   #lightbox {
     display: none; position: fixed; inset: 0; z-index: 9999;
-    background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
-    cursor: zoom-out;
+    background: rgba(0,0,0,0.92); align-items: center; justify-content: center; cursor: zoom-out;
   }
   #lightbox.open { display: flex; }
   #lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 10px; object-fit: contain; }
@@ -349,7 +335,6 @@
   .school .messages::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
   .phone  .messages::-webkit-scrollbar-thumb { background: #d1cdc7; border-radius: 3px; }
 
-  /* ── DEBUG ── */
   #debug-toggle {
     position: fixed; bottom: 10px; right: 10px; z-index: 999;
     background: #1a1a2e; border: 1px solid #ff6b6b66; color: #ff6b6b;
@@ -402,20 +387,17 @@
       <div class="step">Go to <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> → <b>Add project</b> (any name, disable Analytics)</div>
       <div class="step">In the left menu: <b>Build → Realtime Database → Create database</b> → choose any region → start in <b>test mode</b></div>
       <div class="step">Go to <b>Project Settings</b> (gear icon) → scroll to "Your apps" → click <b>&lt;/&gt; Web</b> → register app → copy the <code>firebaseConfig</code> object</div>
-      <div class="step">Paste the config JSON below and click Connect</div>
+      <div class="step">Paste the config below (JS or JSON format both work) and click Connect</div>
     </div>
 
     <div style="margin-top:16px">
-      <label style="color:#7d8590;font-size:0.72rem;font-family:'DM Mono',monospace;display:block;margin-bottom:6px">PASTE firebaseConfig JSON</label>
-      <textarea class="paste-area" id="config-paste" placeholder='{
-  "apiKey": "AIza...",
-  "authDomain": "myapp.firebaseapp.com",
-  "databaseURL": "https://myapp-default-rtdb.firebaseio.com",
-  "projectId": "myapp",
-  "storageBucket": "myapp.appspot.com",
-  "messagingSenderId": "123456",
-  "appId": "1:123:web:abc"
-}'></textarea>
+      <label style="color:#7d8590;font-size:0.72rem;font-family:'DM Mono',monospace;display:block;margin-bottom:6px">PASTE firebaseConfig (JS or JSON)</label>
+      <textarea class="paste-area" id="config-paste" placeholder='const firebaseConfig = {
+  apiKey: "AIza...",
+  databaseURL: "https://myapp-default-rtdb.firebaseio.com",
+  projectId: "myapp",
+  ...
+};'></textarea>
       <button class="parse-btn" onclick="parseAndFill()">↓ Auto-fill fields from paste</button>
     </div>
 
@@ -533,10 +515,24 @@ function refreshEnv() {
     `<b>Firebase init:</b> ${dbReady?'✅':'❌'}`,
     `<b>Protocol:</b> ${location.protocol}`,
     `<b>Origin:</b> ${location.origin}`,
-    `<b>UA:</b> ${navigator.userAgent.substring(0,72)}`,
   ].join('<br>');
 }
 setInterval(() => { if (document.getElementById('debug-panel').classList.contains('open')) refreshEnv(); }, 2000);
+
+// ── SHARED CONFIG PARSER (handles JS object AND JSON) ──
+function parseFirebaseConfig(raw) {
+  // Extract the { ... } block, stripping any `const x =` or trailing `;`
+  const block = raw.replace(/^[\s\S]*?(\{)/, '$1').replace(/\}[\s\S]*$/, '}');
+  // Convert JS object literal → valid JSON:
+  // 1. Remove // comments
+  // 2. Quote bare identifier keys:  apiKey:  →  "apiKey":
+  // 3. Strip trailing commas before closing }
+  const jsonStr = block
+    .replace(/\/\/[^\n]*/g, '')
+    .replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)(\s*:)/g, '$1"$2"$3')
+    .replace(/,(\s*\})/g, '$1');
+  return JSON.parse(jsonStr);
+}
 
 // ── CONFIG ──
 const CFG_KEY = 'homelink-firebase-config';
@@ -548,13 +544,15 @@ window.resetConfig = () => { localStorage.removeItem(CFG_KEY); location.reload()
 window.parseAndFill = () => {
   const raw = document.getElementById('config-paste').value.trim();
   try {
-    const jsonStr = raw.replace(/^[^{]*/,'').replace(/[^}]*$/,'');
-    const cfg = JSON.parse(jsonStr);
+    const cfg = parseFirebaseConfig(raw);
     if (cfg.databaseURL) document.getElementById('f-dburl').value = cfg.databaseURL;
     if (cfg.apiKey)      document.getElementById('f-apikey').value = cfg.apiKey;
     if (cfg.projectId)   document.getElementById('f-projectid').value = cfg.projectId;
-    dlog('ok', 'Parsed config from paste');
-  } catch(e) { showSetupError('Could not parse JSON: ' + e.message); }
+    dlog('ok', 'Config parsed ✓ (apiKey: ' + (cfg.apiKey||'—').substring(0,10) + '…)');
+  } catch(e) {
+    showSetupError('Could not parse config: ' + e.message);
+    dlog('err', 'Parse failed: ' + e.message);
+  }
 };
 
 function showSetupError(msg) {
@@ -670,7 +668,6 @@ window.startChat = (mode) => {
 
   showScreen('chat-screen');
   subscribeMessages();
-
   dlog('info', `Chat started as: ${mode}`);
   document.getElementById('msg-input').focus();
 };
@@ -689,7 +686,7 @@ function subscribeMessages() {
   if (!dbReady) { dlog('err', 'DB not ready'); setStatus('err','Not connected'); return; }
   if (unsubMessages) { unsubMessages(); unsubMessages = null; }
 
-  dlog('info', 'Subscribing to messages (onValue)…');
+  dlog('info', 'Subscribing to messages…');
   setStatus('warn', 'Connecting…');
 
   const q = query(chatRef, limitToLast(100));
@@ -698,7 +695,7 @@ function subscribeMessages() {
     const msgs = [];
     snapshot.forEach(child => {
       const d = child.val();
-      msgs.push({ key: child.key, from: d.from, text: d.text, ts: d.ts || 0, type: d.type || 'text', data: d.data, filename: d.filename, filesize: d.filesize });
+      msgs.push({ key: child.key, from: d.from, text: d.text, ts: d.ts || 0, type: d.type || 'text', data: d.data, filename: d.filename, filesize: d.filesize, mimeType: d.mimeType });
     });
     dlog('ok', `onValue fired — ${msgs.length} messages`);
     renderMessages(msgs);
@@ -713,9 +710,9 @@ function subscribeMessages() {
 }
 
 // ── FILE HANDLING ──
-const MAX_IMAGE_SIZE = 700 * 1024;   // 700 KB after compression
-const MAX_PDF_SIZE   = 700 * 1024;   // 700 KB raw (base64 ≈ 933 KB < 1 MB node limit)
-let pendingFile = null;  // { type, data (base64), filename, filesize, mimeType, thumbSrc }
+const MAX_IMAGE_SIZE = 700 * 1024;
+const MAX_PDF_SIZE   = 700 * 1024;
+let pendingFile = null;
 
 window.triggerFileInput = () => document.getElementById('file-input').click();
 
@@ -729,10 +726,7 @@ window.handleFileSelected = async (e) => {
   const isPdf   = file.type === 'application/pdf';
   const isImage = ['image/png','image/jpeg','image/webp'].includes(file.type);
 
-  if (!isPdf && !isImage) {
-    alert('Only PNG, JPG, WEBP, and PDF files are supported.');
-    return;
-  }
+  if (!isPdf && !isImage) { alert('Only PNG, JPG, WEBP, and PDF files are supported.'); return; }
 
   if (isPdf) {
     if (file.size > MAX_PDF_SIZE) {
@@ -744,7 +738,6 @@ window.handleFileSelected = async (e) => {
     showFpBar(null, file.name, file.size, false);
     dlog('ok', `PDF ready: ${file.name}`);
   } else {
-    // Compress image
     try {
       const compressed = await compressImage(file);
       dlog('ok', `Image compressed: ${fmtBytes(file.size)} → ${fmtBytes(compressed.blob.size)}`);
@@ -767,28 +760,18 @@ function showFpBar(thumbSrc, name, size, isImage) {
   const thumb = document.getElementById('fp-thumb');
   const pdfIcon = document.getElementById('fp-pdf-icon');
   bar.classList.add('visible');
-  if (isImage && thumbSrc) {
-    thumb.src = thumbSrc; thumb.style.display = 'block';
-    pdfIcon.style.display = 'none';
-  } else {
-    thumb.style.display = 'none';
-    pdfIcon.style.display = 'inline';
-  }
+  if (isImage && thumbSrc) { thumb.src = thumbSrc; thumb.style.display = 'block'; pdfIcon.style.display = 'none'; }
+  else { thumb.style.display = 'none'; pdfIcon.style.display = 'inline'; }
   document.getElementById('fp-name').textContent = name;
   document.getElementById('fp-size').textContent = fmtBytes(size);
 }
 
 function hideFpBar() {
-  const bar = document.getElementById('file-preview-bar');
-  bar.classList.remove('visible');
+  document.getElementById('file-preview-bar').classList.remove('visible');
   document.getElementById('fp-thumb').src = '';
 }
 
-window.clearPendingFile = () => {
-  pendingFile = null;
-  hideFpBar();
-  dlog('info', 'Pending file cleared');
-};
+window.clearPendingFile = () => { pendingFile = null; hideFpBar(); dlog('info', 'Pending file cleared'); };
 
 async function compressImage(file) {
   return new Promise((resolve, reject) => {
@@ -804,8 +787,7 @@ async function compressImage(file) {
       }
       const canvas = document.createElement('canvas');
       canvas.width = width; canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
       const thumbCanvas = document.createElement('canvas');
       thumbCanvas.width = 72; thumbCanvas.height = 72;
       const tCtx = thumbCanvas.getContext('2d');
@@ -852,31 +834,17 @@ window.sendMessage = async () => {
 
   const btn = document.getElementById('send-btn');
   const attachBtn = document.getElementById('attach-btn');
-  btn.disabled = true;
-  attachBtn.disabled = true;
-  input.value = '';
-  input.style.height = 'auto';
+  btn.disabled = true; attachBtn.disabled = true;
+  input.value = ''; input.style.height = 'auto';
 
   try {
     if (hasFile) {
       const f = pendingFile;
       pendingFile = null;
       hideFpBar();
-
       dlog('info', `Sending ${f.type}: ${f.filename} (${fmtBytes(f.filesize)})`);
-
-      const payload = {
-        from: myMode,
-        ts: Date.now(),
-        type: f.type,        // 'image' | 'pdf'
-        data: f.data,        // base64 string
-        filename: f.filename,
-        filesize: f.filesize,
-        mimeType: f.mimeType,
-      };
-      // Attach caption if typed
+      const payload = { from: myMode, ts: Date.now(), type: f.type, data: f.data, filename: f.filename, filesize: f.filesize, mimeType: f.mimeType };
       if (text) payload.text = text;
-
       await push(chatRef, payload);
       dlog('ok', `${f.type} sent ✓`);
     }
@@ -891,9 +859,7 @@ window.sendMessage = async () => {
     setStatus('err', 'Send failed: ' + e.message);
     if (!hasFile) input.value = text;
   } finally {
-    btn.disabled = false;
-    attachBtn.disabled = false;
-    input.focus();
+    btn.disabled = false; attachBtn.disabled = false; input.focus();
   }
 };
 
@@ -902,13 +868,13 @@ window.sendAlert = async () => {
   if (!dbReady) { dlog('err', 'DB not ready for alert'); return; }
   const btn = document.getElementById('alert-btn');
   btn.disabled = true; btn.textContent = '⏳ Sending…';
-  dlog('info', 'Pushing alert signal to Firebase…');
+  dlog('info', 'Pushing alert signal…');
   try {
     const cfg = loadConfig();
     const alertsRef = ref(db, `${cfg.channel}/alerts`);
     await push(alertsRef, { from: 'school', ts: Date.now() });
     btn.textContent = '✓ Alert sent!';
-    dlog('ok', 'Alert pushed to Firebase ✓');
+    dlog('ok', 'Alert pushed ✓');
     setTimeout(() => { btn.textContent = '🚨 Alert'; btn.disabled = false; }, 3000);
   } catch(e) {
     btn.textContent = '🚨 Alert'; btn.disabled = false;
@@ -923,37 +889,29 @@ _emptyState.remove();
 
 function renderMessages(msgs) {
   const container = document.getElementById('messages');
-
   if (msgs.length === 0) {
     container.innerHTML = '';
     container.appendChild(_emptyState);
     _emptyState.style.display = 'flex';
     return;
   }
-
   if (_emptyState.parentNode) _emptyState.remove();
-
   const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
   container.innerHTML = '';
-
   let lastDate = null;
   for (const msg of msgs) {
     const ds = fmtDate(msg.ts);
     if (ds !== lastDate) {
       const lbl = document.createElement('div');
-      lbl.className = 'day-label';
-      lbl.textContent = ds;
-      container.appendChild(lbl);
-      lastDate = ds;
+      lbl.className = 'day-label'; lbl.textContent = ds;
+      container.appendChild(lbl); lastDate = ds;
     }
     const isMine = msg.from === myMode;
     const row = document.createElement('div');
     row.className = 'msg-row ' + (isMine ? 'sent' : 'received');
-
     const av = document.createElement('div');
     av.className = 'small-avatar';
     av.textContent = msg.from === 'school' ? '💻' : '📱';
-
     let bubble;
 
     if (msg.type === 'image' && msg.data) {
@@ -961,46 +919,33 @@ function renderMessages(msgs) {
       bubble.className = 'bubble media';
       const imgEl = document.createElement('img');
       imgEl.src = `data:${msg.mimeType||'image/jpeg'};base64,${msg.data}`;
-      imgEl.alt = msg.filename || 'image';
-      imgEl.loading = 'lazy';
+      imgEl.alt = msg.filename || 'image'; imgEl.loading = 'lazy';
       imgEl.onclick = (e) => { e.stopPropagation(); openLightbox(imgEl.src); };
       bubble.appendChild(imgEl);
       if (msg.text) {
         const cap = document.createElement('div');
         cap.style.cssText = 'padding:4px 4px 2px;font-size:0.83rem;color:inherit;max-width:220px;';
-        cap.textContent = msg.text;
-        bubble.appendChild(cap);
+        cap.textContent = msg.text; bubble.appendChild(cap);
       }
-      const ts = document.createElement('span');
-      ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
+      const ts = document.createElement('span'); ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
       bubble.appendChild(ts);
-
     } else if (msg.type === 'pdf' && msg.data) {
       bubble = document.createElement('div');
       bubble.className = 'bubble media';
       const dataUrl = `data:application/pdf;base64,${msg.data}`;
       const card = document.createElement('a');
-      card.className = 'pdf-card';
-      card.href = dataUrl;
+      card.className = 'pdf-card'; card.href = dataUrl;
       card.download = msg.filename || 'document.pdf';
       card.onclick = (e) => e.stopPropagation();
-      card.innerHTML = `
-        <span class="pdf-icon">📄</span>
-        <div class="pdf-info">
-          <div class="pdf-name">${esc(msg.filename || 'document.pdf')}</div>
-          <div class="pdf-size">${fmtBytes(msg.filesize || 0)} · tap to download</div>
-        </div>`;
+      card.innerHTML = `<span class="pdf-icon">📄</span><div class="pdf-info"><div class="pdf-name">${esc(msg.filename||'document.pdf')}</div><div class="pdf-size">${fmtBytes(msg.filesize||0)} · tap to download</div></div>`;
       bubble.appendChild(card);
-      const ts = document.createElement('span');
-      ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
+      const ts = document.createElement('span'); ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
       bubble.appendChild(ts);
-
     } else {
       bubble = document.createElement('div');
       bubble.className = 'bubble ' + (isMine ? 'sent' : 'received');
       bubble.textContent = msg.text || '';
-      const ts = document.createElement('span');
-      ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
+      const ts = document.createElement('span'); ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
       bubble.appendChild(ts);
     }
 
@@ -1009,20 +954,13 @@ function renderMessages(msgs) {
     if (isMine) row.appendChild(av);
     container.appendChild(row);
   }
-
   if (atBottom) container.scrollTop = container.scrollHeight;
   dlog('info', `Rendered ${msgs.length} messages`);
 }
 
 // ── LIGHTBOX ──
-window.openLightbox = (src) => {
-  document.getElementById('lb-img').src = src;
-  document.getElementById('lightbox').classList.add('open');
-};
-window.closeLightbox = () => {
-  document.getElementById('lightbox').classList.remove('open');
-  document.getElementById('lb-img').src = '';
-};
+window.openLightbox = (src) => { document.getElementById('lb-img').src = src; document.getElementById('lightbox').classList.add('open'); };
+window.closeLightbox = () => { document.getElementById('lightbox').classList.remove('open'); document.getElementById('lb-img').src = ''; };
 
 function setStatus(level, text) {
   document.getElementById('status-dot').className = 'status-dot ' + level;
