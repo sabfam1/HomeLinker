@@ -300,6 +300,11 @@
   }
   .webhook-modal h2 { color: #e6edf3; font-size: 0.95rem; }
   .webhook-modal p  { color: #7d8590; font-size: 0.76rem; line-height: 1.5; }
+  .webhook-modal .wh-note {
+    background: rgba(227,179,65,0.08); border: 1px solid rgba(227,179,65,0.25);
+    border-radius: 8px; padding: 8px 12px; color: #e3b341; font-size: 0.72rem;
+    font-family: 'DM Mono', monospace; line-height: 1.5;
+  }
   .webhook-modal input {
     background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
     padding: 8px 12px; color: #e6edf3; font-family: 'DM Mono', monospace;
@@ -398,8 +403,9 @@
 <div class="webhook-modal-bg" id="webhook-modal-bg">
   <div class="webhook-modal">
     <h2>⚡ Alert Webhook</h2>
-    <p>Paste a webhook URL (Home Assistant, IFTTT, Make, etc). When you tap <b>🚨 Alert Home</b> in chat, it sends a POST request so your home device gets notified to open HomeLink.</p>
-    <input id="webhook-input" type="text" placeholder="https://your-ha-instance/api/webhook/homelink-alert">
+    <p>When the desktop sends a 🚨 Alert, the signal travels through Firebase — no direct connection to your local network needed. The <b>home device</b> picks it up and fires this webhook locally.</p>
+    <div class="wh-note">⚠ Set this on your <b>home device</b> (phone/tablet). The webhook is fired from here, so it can reach your local Home Assistant or other LAN services without any browser permissions.</div>
+    <input id="webhook-input" type="text" placeholder="https://homeassistant.local/api/webhook/homelink-alert">
     <div class="webhook-modal-btns">
       <button class="webhook-cancel-btn" onclick="closeWebhookModal()">Cancel</button>
       <button class="webhook-save-btn" onclick="saveWebhook()">Save Webhook</button>
@@ -474,6 +480,7 @@ function refreshEnv() {
     `<b>Channel:</b> ${cfg?.channel||'—'}`,
     `<b>Mode:</b> ${myMode||'not selected'}`,
     `<b>Firebase init:</b> ${dbReady?'✅':'❌'}`,
+    `<b>Webhook set:</b> ${loadWebhook()?'✅':'❌'}`,
     `<b>Protocol:</b> ${location.protocol}`,
     `<b>Origin:</b> ${location.origin}`,
     `<b>UA:</b> ${navigator.userAgent.substring(0,72)}`,
@@ -563,9 +570,6 @@ function initFirebase() {
 }
 
 // ── DAILY AUTO-CLEAR ──
-// Stores a "lastCleared" timestamp in Firebase. Whichever device connects first
-// each day sees it's been 24h+ and wipes all messages, then updates the timestamp.
-// Anyone who guesses the channel only sees an empty database.
 async function runDailyCleanup(channel) {
   const cleanupRef = ref(db, `${channel}/lastCleared`);
   try {
@@ -592,7 +596,8 @@ function showScreen(id) {
 
 // ── CHAT STATE ──
 let myMode = null;
-let unsubMessages = null; // single listener handle
+let unsubMessages = null;
+let unsubAlerts = null;
 
 window.startChat = (mode) => {
   myMode = mode;
@@ -611,26 +616,29 @@ window.startChat = (mode) => {
     document.getElementById('hdr-sub').textContent = 'HomeLink · live';
   }
 
-  // Show alert button only on desktop side (the one sending alerts to home)
+  // Alert button always visible on desktop — it now pushes via Firebase, no local network needed
   const alertBtn = document.getElementById('alert-btn');
-  if (alertBtn) alertBtn.style.display = (mode === 'school' && loadWebhook()) ? 'inline-block' : 'none';
+  if (alertBtn) alertBtn.style.display = (mode === 'school') ? 'inline-block' : 'none';
+
   showScreen('chat-screen');
   subscribeMessages();
+
+  // Home device: listen for incoming alerts from Firebase and fire the webhook locally
+  if (mode === 'phone') subscribeAlerts();
+
   dlog('info', `Chat started as: ${mode}`);
   document.getElementById('msg-input').focus();
 };
 
 window.goBack = () => {
   if (unsubMessages) { unsubMessages(); unsubMessages = null; }
+  if (unsubAlerts)   { unsubAlerts();   unsubAlerts = null;   }
   myMode = null;
   document.body.className = '';
   showScreen('mode-screen');
 };
 
-// ── REALTIME LISTENER (the fix) ──
-// Single onValue listener on the last 100 messages.
-// Firebase calls this immediately with current data, then again on EVERY change.
-// No two-step dance, no onChildAdded race conditions.
+// ── REALTIME LISTENER ──
 function subscribeMessages() {
   if (!dbReady) { dlog('err', 'DB not ready'); setStatus('err','Not connected'); return; }
   if (unsubMessages) { unsubMessages(); unsubMessages = null; }
@@ -655,6 +663,65 @@ function subscribeMessages() {
   }, (err) => {
     dlog('err', 'onValue error: ' + err.message);
     setStatus('err', 'DB error: ' + err.message);
+  });
+}
+
+// ── ALERT RELAY (home device side) ──
+// The home device watches Firebase for alert signals written by the desktop.
+// When one arrives, it fires the webhook locally — no cross-origin / private
+// network access issues because the request originates from the home device itself.
+function subscribeAlerts() {
+  if (!dbReady) return;
+  const webhookUrl = loadWebhook();
+  if (!webhookUrl) {
+    dlog('info', 'No webhook configured on this device — alert relay inactive');
+    return;
+  }
+
+  const cfg = loadConfig();
+  const alertsRef = ref(db, `${cfg.channel}/alerts`);
+  // Only look at the most recent 5 alerts to avoid replaying old ones on reconnect
+  const q = query(alertsRef, limitToLast(5));
+
+  dlog('info', 'Alert relay active — watching Firebase for incoming alerts…');
+
+  // Track the subscription start time so we only act on alerts written *after* we connect
+  const startedAt = Date.now();
+
+  unsubAlerts = onValue(q, async (snapshot) => {
+    if (!snapshot.exists()) return;
+
+    const pending = [];
+    snapshot.forEach(child => {
+      const d = child.val();
+      // Ignore stale alerts (older than when we connected, or older than 60 s)
+      if (d.ts > startedAt && Date.now() - d.ts < 60_000) {
+        pending.push({ ref: child.ref, ts: d.ts });
+      }
+    });
+
+    if (pending.length === 0) return;
+
+    dlog('info', `${pending.length} fresh alert(s) — firing local webhook…`);
+    try {
+      // no-cors lets this reach local/LAN endpoints without preflight requirements
+      await fetch(webhookUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'homelink_alert', message: '🚨 Connect to HomeLink — urgent message waiting!', ts: Date.now() })
+      });
+      dlog('ok', 'Local webhook fired ✓');
+    } catch(e) {
+      dlog('err', 'Webhook failed: ' + e.message);
+    }
+
+    // Remove processed alerts so they don't re-fire on reconnect
+    for (const a of pending) {
+      try { await remove(a.ref); } catch {}
+    }
+  }, (err) => {
+    dlog('err', 'Alert listener error: ' + err.message);
   });
 }
 
@@ -683,10 +750,34 @@ window.sendMessage = async () => {
   }
 };
 
+// ── SEND ALERT (desktop side) ──
+// Pushes a signal into Firebase. The home device's subscribeAlerts() listener
+// picks it up and fires the webhook locally — bypassing any browser
+// private-network-access restrictions on the desktop entirely.
+window.sendAlert = async () => {
+  if (!dbReady) { dlog('err', 'DB not ready for alert'); return; }
+  const btn = document.getElementById('alert-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Sending…';
+  dlog('info', 'Pushing alert signal to Firebase…');
+  try {
+    const cfg = loadConfig();
+    const alertsRef = ref(db, `${cfg.channel}/alerts`);
+    await push(alertsRef, { from: 'school', ts: Date.now() });
+    btn.textContent = '✓ Alert sent!';
+    dlog('ok', 'Alert pushed to Firebase ✓');
+    setTimeout(() => { btn.textContent = '🚨 Alert'; btn.disabled = false; }, 3000);
+  } catch(e) {
+    btn.textContent = '🚨 Alert';
+    btn.disabled = false;
+    dlog('err', 'Alert push failed: ' + e.message);
+    alert('Alert failed: ' + e.message);
+  }
+};
+
 // ── RENDER ──
-// Keep a reference to empty-state outside the DOM so innerHTML = '' can never destroy it.
 const _emptyState = document.getElementById('empty-state');
-_emptyState.remove(); // detach from DOM; we'll re-insert only when needed
+_emptyState.remove();
 
 function renderMessages(msgs) {
   const container = document.getElementById('messages');
@@ -698,12 +789,10 @@ function renderMessages(msgs) {
     return;
   }
 
-  // Hide empty state if it's currently shown
   if (_emptyState.parentNode) _emptyState.remove();
 
   const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
 
-  // Remove all message rows and day labels, keeping nothing (empty-state already detached)
   container.innerHTML = '';
 
   let lastDate = null;
@@ -759,7 +848,6 @@ function fmtDate(ts) {
   return d.toLocaleDateString([], {weekday:'long',month:'short',day:'numeric'});
 }
 
-
 // ── WEBHOOK ──
 const WH_KEY = 'homelink-webhook-url';
 function loadWebhook() { return localStorage.getItem(WH_KEY) || ''; }
@@ -783,30 +871,6 @@ function updateWebhookStatus() {
   const el = document.getElementById('webhook-status');
   if (el) el.style.display = loadWebhook() ? 'inline' : 'none';
 }
-
-window.sendAlert = async () => {
-  const url = loadWebhook();
-  if (!url) { alert('No webhook set — tap "Set Alert Webhook" on the main menu first.'); return; }
-  const btn = document.getElementById('alert-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Sending…';
-  dlog('info', 'Firing alert webhook…');
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event: 'homelink_alert', message: '🚨 Connect to HomeLink — urgent message waiting!', ts: Date.now() })
-    });
-    btn.textContent = '✓ Sent!';
-    dlog('ok', 'Alert webhook fired ✓');
-    setTimeout(() => { btn.textContent = '🚨 Alert'; btn.disabled = false; }, 3000);
-  } catch(e) {
-    btn.textContent = '🚨 Alert';
-    btn.disabled = false;
-    dlog('err', 'Webhook failed: ' + e.message);
-    alert('Webhook failed: ' + e.message);
-  }
-};
 
 // ── BOOT ──
 const saved = loadConfig();
