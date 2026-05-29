@@ -281,50 +281,6 @@
   #dbg-env { background: #08080f; border-top: 1px solid #ffffff08; padding: 8px 12px; font-size: 0.66rem; color: #444; line-height: 1.7; }
   #dbg-env b { color: #777; }
 
-  /* ── WEBHOOK ── */
-  .webhook-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-  .webhook-btn {
-    background: none; border: 1px solid #30363d; color: #7d8590;
-    padding: 5px 12px; border-radius: 8px; cursor: pointer; font-family: 'Sora', sans-serif;
-    font-size: 0.75rem; transition: border-color 0.2s, color 0.2s; white-space: nowrap;
-  }
-  .webhook-btn:hover { border-color: #e3b341; color: #e3b341; }
-  .webhook-modal-bg {
-    display: none; position: fixed; inset: 0; z-index: 900;
-    background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
-  }
-  .webhook-modal-bg.open { display: flex; }
-  .webhook-modal {
-    background: #161b22; border: 1px solid #30363d; border-radius: 16px;
-    padding: 24px; width: min(400px, calc(100vw - 40px)); display: flex; flex-direction: column; gap: 14px;
-  }
-  .webhook-modal h2 { color: #e6edf3; font-size: 0.95rem; }
-  .webhook-modal p  { color: #7d8590; font-size: 0.76rem; line-height: 1.5; }
-  .webhook-modal .wh-note {
-    background: rgba(227,179,65,0.08); border: 1px solid rgba(227,179,65,0.25);
-    border-radius: 8px; padding: 8px 12px; color: #e3b341; font-size: 0.72rem;
-    font-family: 'DM Mono', monospace; line-height: 1.5;
-  }
-  .webhook-modal input {
-    background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
-    padding: 8px 12px; color: #e6edf3; font-family: 'DM Mono', monospace;
-    font-size: 0.78rem; outline: none; width: 100%; transition: border-color 0.2s;
-  }
-  .webhook-modal input:focus { border-color: #e3b341; }
-  .webhook-modal input::placeholder { color: #484f58; }
-  .webhook-modal-btns { display: flex; gap: 8px; }
-  .webhook-save-btn {
-    flex: 1; padding: 9px; border-radius: 8px; border: none;
-    background: #e3b341; color: #0d1117; font-family: 'Sora', sans-serif;
-    font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: opacity 0.2s;
-  }
-  .webhook-save-btn:hover { opacity: 0.85; }
-  .webhook-cancel-btn {
-    padding: 9px 16px; border-radius: 8px; border: 1px solid #30363d;
-    background: none; color: #7d8590; font-family: 'Sora', sans-serif;
-    font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s, color 0.2s;
-  }
-  .webhook-cancel-btn:hover { border-color: #7d8590; color: #e6edf3; }
   .alert-btn {
     padding: 6px 12px; border-radius: 8px; border: 1px solid #e3b34166;
     background: rgba(227,179,65,0.08); color: #e3b341; font-family: 'Sora', sans-serif;
@@ -392,26 +348,9 @@
     <div class="mode-card school" onclick="startChat('school')"><div class="icon">💻</div><h2>Desktop</h2><span>Computer / laptop</span></div>
     <div class="mode-card phone"  onclick="startChat('phone')"><div class="icon">📱</div><h2>Home</h2><span>Phone / tablet</span></div>
   </div>
-  <div class="webhook-row">
-    <button class="webhook-btn" onclick="openWebhookModal()">⚡ Set Alert Webhook</button>
-    <span id="webhook-status" style="font-size:0.7rem;font-family:'DM Mono',monospace;color:#3fb950;display:none">● webhook set</span>
-  </div>
   <span class="reset-link" onclick="resetConfig()">Change Firebase config</span>
 </div>
 
-<!-- WEBHOOK MODAL -->
-<div class="webhook-modal-bg" id="webhook-modal-bg">
-  <div class="webhook-modal">
-    <h2>⚡ Alert Webhook</h2>
-    <p>When the desktop sends a 🚨 Alert, the signal travels through Firebase — no direct connection to your local network needed. The <b>home device</b> picks it up and fires this webhook locally.</p>
-    <div class="wh-note">⚠ Set this on your <b>home device</b> (phone/tablet). The webhook is fired from here, so it can reach your local Home Assistant or other LAN services without any browser permissions.</div>
-    <input id="webhook-input" type="text" placeholder="https://homeassistant.local/api/webhook/homelink-alert">
-    <div class="webhook-modal-btns">
-      <button class="webhook-cancel-btn" onclick="closeWebhookModal()">Cancel</button>
-      <button class="webhook-save-btn" onclick="saveWebhook()">Save Webhook</button>
-    </div>
-  </div>
-</div>
 
 <!-- CHAT -->
 <div id="chat-screen" class="screen">
@@ -597,7 +536,6 @@ function showScreen(id) {
 // ── CHAT STATE ──
 let myMode = null;
 let unsubMessages = null;
-let unsubAlerts = null;
 
 window.startChat = (mode) => {
   myMode = mode;
@@ -623,16 +561,12 @@ window.startChat = (mode) => {
   showScreen('chat-screen');
   subscribeMessages();
 
-  // Home device: listen for incoming alerts from Firebase and fire the webhook locally
-  if (mode === 'phone') subscribeAlerts();
-
   dlog('info', `Chat started as: ${mode}`);
   document.getElementById('msg-input').focus();
 };
 
 window.goBack = () => {
   if (unsubMessages) { unsubMessages(); unsubMessages = null; }
-  if (unsubAlerts)   { unsubAlerts();   unsubAlerts = null;   }
   myMode = null;
   document.body.className = '';
   showScreen('mode-screen');
@@ -663,65 +597,6 @@ function subscribeMessages() {
   }, (err) => {
     dlog('err', 'onValue error: ' + err.message);
     setStatus('err', 'DB error: ' + err.message);
-  });
-}
-
-// ── ALERT RELAY (home device side) ──
-// The home device watches Firebase for alert signals written by the desktop.
-// When one arrives, it fires the webhook locally — no cross-origin / private
-// network access issues because the request originates from the home device itself.
-function subscribeAlerts() {
-  if (!dbReady) return;
-  const webhookUrl = loadWebhook();
-  if (!webhookUrl) {
-    dlog('info', 'No webhook configured on this device — alert relay inactive');
-    return;
-  }
-
-  const cfg = loadConfig();
-  const alertsRef = ref(db, `${cfg.channel}/alerts`);
-  // Only look at the most recent 5 alerts to avoid replaying old ones on reconnect
-  const q = query(alertsRef, limitToLast(5));
-
-  dlog('info', 'Alert relay active — watching Firebase for incoming alerts…');
-
-  // Track the subscription start time so we only act on alerts written *after* we connect
-  const startedAt = Date.now();
-
-  unsubAlerts = onValue(q, async (snapshot) => {
-    if (!snapshot.exists()) return;
-
-    const pending = [];
-    snapshot.forEach(child => {
-      const d = child.val();
-      // Ignore stale alerts (older than when we connected, or older than 60 s)
-      if (d.ts > startedAt && Date.now() - d.ts < 60_000) {
-        pending.push({ ref: child.ref, ts: d.ts });
-      }
-    });
-
-    if (pending.length === 0) return;
-
-    dlog('info', `${pending.length} fresh alert(s) — firing local webhook…`);
-    try {
-      // no-cors lets this reach local/LAN endpoints without preflight requirements
-      await fetch(webhookUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: 'homelink_alert', message: '🚨 Connect to HomeLink — urgent message waiting!', ts: Date.now() })
-      });
-      dlog('ok', 'Local webhook fired ✓');
-    } catch(e) {
-      dlog('err', 'Webhook failed: ' + e.message);
-    }
-
-    // Remove processed alerts so they don't re-fire on reconnect
-    for (const a of pending) {
-      try { await remove(a.ref); } catch {}
-    }
-  }, (err) => {
-    dlog('err', 'Alert listener error: ' + err.message);
   });
 }
 
@@ -848,37 +723,12 @@ function fmtDate(ts) {
   return d.toLocaleDateString([], {weekday:'long',month:'short',day:'numeric'});
 }
 
-// ── WEBHOOK ──
-const WH_KEY = 'homelink-webhook-url';
-function loadWebhook() { return localStorage.getItem(WH_KEY) || ''; }
-function saveWebhookUrl(url) { localStorage.setItem(WH_KEY, url); }
-
-window.openWebhookModal = () => {
-  document.getElementById('webhook-input').value = loadWebhook();
-  document.getElementById('webhook-modal-bg').classList.add('open');
-};
-window.closeWebhookModal = () => {
-  document.getElementById('webhook-modal-bg').classList.remove('open');
-};
-window.saveWebhook = () => {
-  const url = document.getElementById('webhook-input').value.trim();
-  saveWebhookUrl(url);
-  closeWebhookModal();
-  updateWebhookStatus();
-  dlog('ok', url ? 'Webhook saved ✓' : 'Webhook cleared');
-};
-function updateWebhookStatus() {
-  const el = document.getElementById('webhook-status');
-  if (el) el.style.display = loadWebhook() ? 'inline' : 'none';
-}
-
 // ── BOOT ──
 const saved = loadConfig();
 if (saved) {
   dlog('ok', 'Saved config found, skipping setup');
   initFirebase();
   showScreen('mode-screen');
-  updateWebhookStatus();
 } else {
   dlog('info', 'No saved config — showing setup');
   showScreen('setup-screen');
