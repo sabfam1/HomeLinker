@@ -494,7 +494,7 @@
 // IMPORTS
 // ─────────────────────────────────────────────
 import { initializeApp }            from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, push, onValue, query, limitToLast, serverTimestamp }
+import { getDatabase, ref, push, onValue, onChildAdded, query, limitToLast, orderByKey }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 // ─────────────────────────────────────────────
@@ -627,7 +627,7 @@ window.connectFirebase = async () => {
 // ─────────────────────────────────────────────
 // FIREBASE INIT
 // ─────────────────────────────────────────────
-let db = null, chatRef = null, dbReady = false, unsubscribe = null;
+let db = null, chatRef = null, dbReady = false;
 
 function initFirebase() {
   const cfg = loadConfig();
@@ -683,7 +683,9 @@ window.startChat = (mode) => {
 };
 
 window.goBack = () => {
-  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  if (unsubInitial) { unsubInitial(); unsubInitial = null; }
+  if (unsubNew)     { unsubNew();     unsubNew = null; }
+  messageCache = [];
   myMode = null;
   document.body.className = '';
   showScreen('mode-screen');
@@ -692,29 +694,72 @@ window.goBack = () => {
 // ─────────────────────────────────────────────
 // REALTIME LISTENER
 // ─────────────────────────────────────────────
+let messageCache = []; // ordered list of all loaded messages
+let unsubInitial = null, unsubNew = null;
+
 function subscribeMessages() {
   if (!dbReady) { dlog('err', 'DB not ready'); setStatus('err','Not connected'); return; }
-  if (unsubscribe) unsubscribe();
+  // Clean up any previous listeners
+  if (unsubInitial) { unsubInitial(); unsubInitial = null; }
+  if (unsubNew)     { unsubNew();     unsubNew = null; }
+  messageCache = [];
 
   dlog('info', 'Subscribing to message stream…');
   setStatus('warn', 'Connecting…');
 
-  const q = query(chatRef, limitToLast(100));
-  unsubscribe = onValue(q, (snapshot) => {
-    dlog('ok', `onValue fired — snapshot exists: ${snapshot.exists()}`);
-    const msgs = [];
+  // Step 1: load last 100 messages once for history
+  const historyQ = query(chatRef, limitToLast(100));
+  unsubInitial = onValue(historyQ, (snapshot) => {
+    // Only run once for initial load, then detach
+    unsubInitial();
+    unsubInitial = null;
+
+    messageCache = [];
     snapshot.forEach(child => {
       const d = child.val();
-      msgs.push({ key: child.key, from: d.from, text: d.text, ts: d.ts || Date.now() });
+      messageCache.push({ key: child.key, from: d.from, text: d.text, ts: d.ts || 0 });
     });
-    renderMessages(msgs);
-    const other = myMode === 'school' ? 'phone' : 'school';
-    const last = [...msgs].reverse().find(m => m.from === other);
-    setStatus('ok', last ? 'Last msg ' + fmtTime(last.ts) : 'Waiting for messages…');
+    dlog('ok', `Initial load: ${messageCache.length} messages`);
+    renderMessages(messageCache);
+    updateStatus();
+
+    // Step 2: after history loaded, listen for NEW children only
+    // Use the last key we have so we don't re-receive old messages
+    const lastKey = messageCache.length > 0 ? messageCache[messageCache.length - 1].key : null;
+    const newQ = lastKey
+      ? query(chatRef, orderByKey(), limitToLast(1))
+      : query(chatRef, limitToLast(1));
+
+    // Small delay so Firebase doesn't double-fire the last existing message
+    setTimeout(() => {
+      unsubNew = onChildAdded(chatRef, (child) => {
+        const d = child.val();
+        const msg = { key: child.key, from: d.from, text: d.text, ts: d.ts || 0 };
+        // Skip if we already have it from initial load
+        if (messageCache.find(m => m.key === msg.key)) return;
+        dlog('ok', `New message from ${msg.from}: "${msg.text.substring(0,30)}"`);
+        messageCache.push(msg);
+        // Keep last 100
+        if (messageCache.length > 100) messageCache.shift();
+        renderMessages(messageCache);
+        updateStatus();
+      }, (err) => {
+        dlog('err', 'onChildAdded error: ' + err.message);
+        setStatus('err', 'DB error: ' + err.message);
+      });
+      dlog('info', 'Real-time listener active');
+    }, 300);
+
   }, (err) => {
-    dlog('err', 'onValue error: ' + err.message);
+    dlog('err', 'Initial load error: ' + err.message);
     setStatus('err', 'DB error: ' + err.message);
   });
+}
+
+function updateStatus() {
+  const other = myMode === 'school' ? 'phone' : 'school';
+  const last = [...messageCache].reverse().find(m => m.from === other);
+  setStatus('ok', last ? 'Last msg ' + fmtTime(last.ts) : 'Waiting for messages…');
 }
 
 // ─────────────────────────────────────────────
