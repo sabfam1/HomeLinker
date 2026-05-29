@@ -519,19 +519,35 @@ function refreshEnv() {
 }
 setInterval(() => { if (document.getElementById('debug-panel').classList.contains('open')) refreshEnv(); }, 2000);
 
-// ── SHARED CONFIG PARSER (handles JS object AND JSON) ──
+// ── CONFIG PARSER ──
+// Extracts each Firebase field by regex instead of JSON.parse — immune to
+// hidden Unicode chars, control characters, or copy-paste encoding issues.
 function parseFirebaseConfig(raw) {
-  // Extract the { ... } block, stripping any `const x =` or trailing `;`
-  const block = raw.replace(/^[\s\S]*?(\{)/, '$1').replace(/\}[\s\S]*$/, '}');
-  // Convert JS object literal → valid JSON:
-  // 1. Remove // comments
-  // 2. Quote bare identifier keys:  apiKey:  →  "apiKey":
-  // 3. Strip trailing commas before closing }
-  const jsonStr = block
-    .replace(/\/\/[^\n]*/g, '')
-    .replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)(\s*:)/g, '$1"$2"$3')
-    .replace(/,(\s*\})/g, '$1');
-  return JSON.parse(jsonStr);
+  // Strip hidden/control chars that break JSON.parse but survive copy-paste
+  const clean = raw.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, ' ');
+
+  function extract(key) {
+    // Match:  key   :   "value"   or   key   :   'value'
+    // Tolerates whitespace, hidden chars between key and colon and quote
+    const m = clean.match(new RegExp(key + '\\s*:\\s*["\']([^"\']+)["\']'));
+    return m ? m[1].trim() : null;
+  }
+
+  const cfg = {
+    apiKey:            extract('apiKey'),
+    authDomain:        extract('authDomain'),
+    databaseURL:       extract('databaseURL'),
+    projectId:         extract('projectId'),
+    storageBucket:     extract('storageBucket'),
+    messagingSenderId: extract('messagingSenderId'),
+    appId:             extract('appId'),
+  };
+
+  if (!cfg.apiKey)      throw new Error('apiKey not found — paste the full firebaseConfig block');
+  if (!cfg.databaseURL) throw new Error('databaseURL not found — make sure Realtime Database is enabled in Firebase');
+  if (!cfg.projectId)   throw new Error('projectId not found');
+
+  return cfg;
 }
 
 // ── CONFIG ──
