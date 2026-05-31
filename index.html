@@ -335,33 +335,6 @@
   .school .messages::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
   .phone  .messages::-webkit-scrollbar-thumb { background: #d1cdc7; border-radius: 3px; }
 
-  #debug-toggle {
-    position: fixed; bottom: 10px; right: 10px; z-index: 999;
-    background: #1a1a2e; border: 1px solid #ff6b6b66; color: #ff6b6b;
-    font-family: 'DM Mono', monospace; font-size: 0.68rem;
-    padding: 4px 10px; border-radius: 8px; cursor: pointer; opacity: 0.6; transition: opacity 0.2s;
-  }
-  #debug-toggle:hover { opacity: 1; }
-  #debug-panel {
-    display: none; position: fixed; bottom: 38px; right: 10px; z-index: 998;
-    width: min(420px, calc(100vw - 20px));
-    background: #0a0a14; border: 1px solid #ff6b6b33;
-    border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.7);
-    font-family: 'DM Mono', monospace; flex-direction: column;
-  }
-  #debug-panel.open { display: flex; }
-  #dbg-header { background: #160606; border-bottom: 1px solid #ff6b6b22; padding: 7px 12px; display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: #ff6b6b; }
-  #dbg-header span { flex: 1; }
-  #dbg-header button { background: none; border: none; color: #ff6b6b55; cursor: pointer; font-size: 0.8rem; padding: 0 3px; }
-  #dbg-header button:hover { color: #ff6b6b; }
-  #dbg-log { height: 200px; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
-  #dbg-log::-webkit-scrollbar { width: 3px; }
-  #dbg-log::-webkit-scrollbar-thumb { background: #ff6b6b33; border-radius: 3px; }
-  .dl { font-size: 0.67rem; line-height: 1.4; padding: 2px 0; border-bottom: 1px solid #ffffff06; }
-  .dl .dt { color: #555; margin-right: 6px; }
-  .dl.info { color: #58a6ff; } .dl.ok { color: #3fb950; } .dl.warn { color: #e3b341; } .dl.err { color: #ff6b6b; }
-  #dbg-env { background: #08080f; border-top: 1px solid #ffffff08; padding: 8px 12px; font-size: 0.66rem; color: #444; line-height: 1.7; }
-  #dbg-env b { color: #777; }
 
   .alert-btn {
     padding: 6px 12px; border-radius: 8px; border: 1px solid #e3b34166;
@@ -457,7 +430,7 @@
     <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,application/pdf"
            style="display:none" onchange="handleFileSelected(event)">
     <textarea id="msg-input" rows="1" placeholder="Type a message…"
-      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      onkeydown="handleKey(event)" oninput="autoResize(this);updateCharCount(this)"></textarea>
     <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
   </div>
 </div>
@@ -468,16 +441,6 @@
   <img id="lb-img" src="" alt="">
 </div>
 
-<!-- DEBUG -->
-<button id="debug-toggle" onclick="toggleDebug()">🐛 debug</button>
-<div id="debug-panel">
-  <div id="dbg-header">
-    <span>🐛 HomeLink Diagnostics</span>
-    <button onclick="clearLog()">clear</button>
-    <button onclick="toggleDebug()">✕</button>
-  </div>
-  <div id="dbg-log"></div>
-  <div id="dbg-env">—</div>
 </div>
 
 <script type="module">
@@ -485,39 +448,6 @@ import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.0/fire
 import { getDatabase, ref, push, onValue, query, limitToLast, get, set, remove }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-// ── DEBUG ──
-function dlog(level, msg) {
-  const ts = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const el = document.getElementById('dbg-log');
-  if (!el) return;
-  const row = document.createElement('div');
-  row.className = 'dl ' + level;
-  row.innerHTML = `<span class="dt">${ts}</span>${esc(msg)}`;
-  el.appendChild(row);
-  el.scrollTop = el.scrollHeight;
-  while (el.children.length > 200) el.removeChild(el.firstChild);
-}
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-window.toggleDebug = () => {
-  const p = document.getElementById('debug-panel');
-  p.classList.toggle('open');
-  if (p.classList.contains('open')) refreshEnv();
-};
-window.clearLog = () => { document.getElementById('dbg-log').innerHTML = ''; dlog('info','Log cleared'); };
-function refreshEnv() {
-  const cfg = loadConfig();
-  document.getElementById('dbg-env').innerHTML = [
-    `<b>Firebase DB URL:</b> ${cfg?.databaseURL||'—'}`,
-    `<b>Project ID:</b> ${cfg?.projectId||'—'}`,
-    `<b>Channel:</b> ${cfg?.channel||'—'}`,
-    `<b>Mode:</b> ${myMode||'not selected'}`,
-    `<b>Firebase init:</b> ${dbReady?'✅':'❌'}`,
-    `<b>Protocol:</b> ${location.protocol}`,
-    `<b>Origin:</b> ${location.origin}`,
-  ].join('<br>');
-}
-setInterval(() => { if (document.getElementById('debug-panel').classList.contains('open')) refreshEnv(); }, 2000);
 
 // ── CONFIG PARSER ──
 // Extracts each Firebase field by regex instead of JSON.parse — immune to
@@ -564,17 +494,15 @@ window.parseAndFill = () => {
     if (cfg.databaseURL) document.getElementById('f-dburl').value = cfg.databaseURL;
     if (cfg.apiKey)      document.getElementById('f-apikey').value = cfg.apiKey;
     if (cfg.projectId)   document.getElementById('f-projectid').value = cfg.projectId;
-    dlog('ok', 'Config parsed ✓ (apiKey: ' + (cfg.apiKey||'—').substring(0,10) + '…)');
   } catch(e) {
     showSetupError('Could not parse config: ' + e.message);
-    dlog('err', 'Parse failed: ' + e.message);
+   
   }
 };
 
 function showSetupError(msg) {
   const el = document.getElementById('setup-error');
   el.textContent = msg; el.style.display = 'block';
-  dlog('err', 'Setup error: ' + msg);
 }
 
 window.connectFirebase = async () => {
@@ -591,7 +519,6 @@ window.connectFirebase = async () => {
 
   const btn = document.getElementById('connect-btn');
   btn.disabled = true; btn.textContent = 'Connecting…';
-  dlog('info', `Trying to connect to ${dbURL}`);
 
   try {
     const testApp = initializeApp({ apiKey, authDomain: `${projId}.firebaseapp.com`, databaseURL: dbURL, projectId: projId, storageBucket: `${projId}.appspot.com` }, 'test-' + Date.now());
@@ -603,12 +530,11 @@ window.connectFirebase = async () => {
       setTimeout(() => reject(new Error('Timeout — check Database URL and internet connection')), 8000);
     });
 
-    dlog('ok', 'Firebase connection test passed ✓');
+   
     saveConfig({ apiKey, authDomain: `${projId}.firebaseapp.com`, databaseURL: dbURL, projectId: projId, storageBucket: `${projId}.appspot.com`, channel });
     showScreen('mode-screen');
     initFirebase();
   } catch(e) {
-    dlog('err', 'Connection failed: ' + (e.message || e));
     showSetupError('Connection failed: ' + (e.message || e));
     btn.disabled = false; btn.textContent = 'Connect to Firebase →';
   }
@@ -620,17 +546,16 @@ let db = null, chatRef = null, dbReady = false;
 function initFirebase() {
   const cfg = loadConfig();
   if (!cfg) return;
-  dlog('info', `Initializing Firebase (${cfg.databaseURL})`);
   try {
     const app = initializeApp(cfg, 'homelink-' + Date.now());
     db = getDatabase(app);
     chatRef = ref(db, `${cfg.channel}/messages`);
     dbReady = true;
-    dlog('ok', 'Firebase initialized ✓');
+   
     const badge = document.getElementById('db-badge');
     if (badge) badge.textContent = '● ' + cfg.databaseURL.replace('https://','').split('.')[0];
     runDailyCleanup(cfg.channel);
-  } catch(e) { dlog('err', 'Firebase init failed: ' + (e.message || e)); }
+  } catch(e) { }
 }
 
 // ── DAILY AUTO-CLEAR ──
@@ -640,15 +565,14 @@ async function runDailyCleanup(channel) {
     const snap = await get(cleanupRef);
     const lastCleared = snap.exists() ? snap.val() : 0;
     const hoursSince = (Date.now() - lastCleared) / (1000 * 60 * 60);
-    dlog('info', `Last cleared ${Math.round(hoursSince)}h ago`);
     if (hoursSince >= 24) {
       const msgsRef = ref(db, `${channel}/messages`);
       await remove(msgsRef);
       await set(cleanupRef, Date.now());
-      dlog('ok', 'Daily cleanup done — messages cleared ✓');
+     
     }
   } catch(e) {
-    dlog('warn', 'Daily cleanup failed: ' + e.message);
+   
   }
 }
 
@@ -684,7 +608,6 @@ window.startChat = (mode) => {
 
   showScreen('chat-screen');
   subscribeMessages();
-  dlog('info', `Chat started as: ${mode}`);
   document.getElementById('msg-input').focus();
 };
 
@@ -699,10 +622,9 @@ window.goBack = () => {
 
 // ── REALTIME LISTENER ──
 function subscribeMessages() {
-  if (!dbReady) { dlog('err', 'DB not ready'); setStatus('err','Not connected'); return; }
+  if (!dbReady) { setStatus('err','Not connected'); return; }
   if (unsubMessages) { unsubMessages(); unsubMessages = null; }
 
-  dlog('info', 'Subscribing to messages…');
   setStatus('warn', 'Connecting…');
 
   const q = query(chatRef, limitToLast(100));
@@ -713,14 +635,14 @@ function subscribeMessages() {
       const d = child.val();
       msgs.push({ key: child.key, from: d.from, text: d.text, ts: d.ts || 0, type: d.type || 'text', data: d.data, filename: d.filename, filesize: d.filesize, mimeType: d.mimeType });
     });
-    dlog('ok', `onValue fired — ${msgs.length} messages`);
+   
     renderMessages(msgs);
 
     const other = myMode === 'school' ? 'phone' : 'school';
     const last = [...msgs].reverse().find(m => m.from === other);
     setStatus('ok', last ? 'Last msg ' + fmtTime(last.ts) : 'Waiting for messages…');
   }, (err) => {
-    dlog('err', 'onValue error: ' + err.message);
+   
     setStatus('err', 'DB error: ' + err.message);
   });
 }
@@ -737,7 +659,6 @@ window.handleFileSelected = async (e) => {
   e.target.value = '';
   if (!file) return;
 
-  dlog('info', `File selected: ${file.name} (${fmtBytes(file.size)}) [${file.type}]`);
 
   const isPdf   = file.type === 'application/pdf';
   const isImage = ['image/png','image/jpeg','image/webp'].includes(file.type);
@@ -752,11 +673,10 @@ window.handleFileSelected = async (e) => {
     const b64 = await fileToBase64(file);
     pendingFile = { type: 'pdf', data: b64, filename: file.name, filesize: file.size, mimeType: file.type };
     showFpBar(null, file.name, file.size, false);
-    dlog('ok', `PDF ready: ${file.name}`);
+   
   } else {
     try {
       const compressed = await compressImage(file);
-      dlog('ok', `Image compressed: ${fmtBytes(file.size)} → ${fmtBytes(compressed.blob.size)}`);
       if (compressed.blob.size > MAX_IMAGE_SIZE) {
         alert(`Image is still too large after compression (${fmtBytes(compressed.blob.size)}). Please use a smaller image.`);
         return;
@@ -765,7 +685,7 @@ window.handleFileSelected = async (e) => {
       pendingFile = { type: 'image', data: b64, filename: file.name, filesize: compressed.blob.size, mimeType: compressed.mime, thumbSrc: compressed.thumbSrc };
       showFpBar(compressed.thumbSrc, file.name, compressed.blob.size, true);
     } catch(err) {
-      dlog('err', 'Image compression failed: ' + err.message);
+     
       alert('Could not process image: ' + err.message);
     }
   }
@@ -787,7 +707,7 @@ function hideFpBar() {
   document.getElementById('fp-thumb').src = '';
 }
 
-window.clearPendingFile = () => { pendingFile = null; hideFpBar(); dlog('info', 'Pending file cleared'); };
+window.clearPendingFile = () => { pendingFile = null; hideFpBar(); };
 
 async function compressImage(file) {
   return new Promise((resolve, reject) => {
@@ -839,14 +759,26 @@ function blobToBase64(blob) {
   });
 }
 
+// ── RATE LIMITER ──
+const _sendTimes = [];
+function rateLimitCheck() {
+  const now = Date.now();
+  while (_sendTimes.length && now - _sendTimes[0] > 10000) _sendTimes.shift();
+  if (_sendTimes.length >= 8) { setStatus('warn','Slow down — too many messages'); return false; }
+  _sendTimes.push(now);
+  return true;
+}
+
 // ── SEND ──
+const MAX_MSG_LENGTH = 2000;
 window.sendMessage = async () => {
   const input = document.getElementById('msg-input');
-  const text = input.value.trim();
+  const text = input.value.trim().substring(0, MAX_MSG_LENGTH);
   const hasFile = !!pendingFile;
 
   if (!text && !hasFile) return;
   if (!dbReady) return;
+  if (!rateLimitCheck()) return;
 
   const btn = document.getElementById('send-btn');
   const attachBtn = document.getElementById('attach-btn');
@@ -858,20 +790,17 @@ window.sendMessage = async () => {
       const f = pendingFile;
       pendingFile = null;
       hideFpBar();
-      dlog('info', `Sending ${f.type}: ${f.filename} (${fmtBytes(f.filesize)})`);
       const payload = { from: myMode, ts: Date.now(), type: f.type, data: f.data, filename: f.filename, filesize: f.filesize, mimeType: f.mimeType };
       if (text) payload.text = text;
       await push(chatRef, payload);
-      dlog('ok', `${f.type} sent ✓`);
+     
     }
 
     if (text && !hasFile) {
-      dlog('info', `Sending text: "${text.substring(0,40)}"`);
       await push(chatRef, { from: myMode, text, ts: Date.now(), type: 'text' });
-      dlog('ok', 'Text sent ✓');
+     
     }
   } catch(e) {
-    dlog('err', 'Send failed: ' + (e.message || e));
     setStatus('err', 'Send failed: ' + e.message);
     if (!hasFile) input.value = text;
   } finally {
@@ -881,20 +810,19 @@ window.sendMessage = async () => {
 
 // ── SEND ALERT ──
 window.sendAlert = async () => {
-  if (!dbReady) { dlog('err', 'DB not ready for alert'); return; }
+  if (!dbReady) { return; }
   const btn = document.getElementById('alert-btn');
   btn.disabled = true; btn.textContent = '⏳ Sending…';
-  dlog('info', 'Pushing alert signal…');
   try {
     const cfg = loadConfig();
     const alertsRef = ref(db, `${cfg.channel}/alerts`);
     await push(alertsRef, { from: 'school', ts: Date.now() });
     btn.textContent = '✓ Alert sent!';
-    dlog('ok', 'Alert pushed ✓');
+   
     setTimeout(() => { btn.textContent = '🚨 Alert'; btn.disabled = false; }, 3000);
   } catch(e) {
     btn.textContent = '🚨 Alert'; btn.disabled = false;
-    dlog('err', 'Alert push failed: ' + e.message);
+   
     alert('Alert failed: ' + e.message);
   }
 };
@@ -971,7 +899,6 @@ function renderMessages(msgs) {
     container.appendChild(row);
   }
   if (atBottom) container.scrollTop = container.scrollHeight;
-  dlog('info', `Rendered ${msgs.length} messages`);
 }
 
 // ── LIGHTBOX ──
@@ -1001,14 +928,39 @@ function fmtBytes(b) {
   return (b/(1024*1024)).toFixed(1) + ' MB';
 }
 
+// ── IDLE SESSION LOCK ──
+// After 30 min of inactivity, wipe the saved config from memory (not localStorage)
+// so the user must re-enter credentials to send. Protect shared devices.
+let _idleTimer = null;
+function resetIdleTimer() {
+  if (_idleTimer) clearTimeout(_idleTimer);
+  _idleTimer = setTimeout(() => {
+    if (myMode) {
+      dbReady = false; db = null;
+      setStatus('warn','Session expired — refresh to reconnect');
+     
+    }
+  }, 30 * 60 * 1000);
+}
+['click','keydown','touchstart'].forEach(ev => document.addEventListener(ev, resetIdleTimer));
+resetIdleTimer();
+
+// ── CHAR COUNTER ──
+window.updateCharCount = (el) => {
+  const MAX = 2000;
+  const remaining = MAX - el.value.length;
+  const bar = document.getElementById('status-text');
+  if (remaining < 100) {
+    bar.textContent = `${remaining} chars left`;
+  }
+};
+
 // ── BOOT ──
 const saved = loadConfig();
 if (saved) {
-  dlog('ok', 'Saved config found, skipping setup');
   initFirebase();
   showScreen('mode-screen');
 } else {
-  dlog('info', 'No saved config — showing setup');
   showScreen('setup-screen');
 }
 </script>
