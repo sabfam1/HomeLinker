@@ -335,7 +335,6 @@
   .school .messages::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
   .phone  .messages::-webkit-scrollbar-thumb { background: #d1cdc7; border-radius: 3px; }
 
-
   .alert-btn {
     padding: 6px 12px; border-radius: 8px; border: 1px solid #e3b34166;
     background: rgba(227,179,65,0.08); color: #e3b341; font-family: 'Sora', sans-serif;
@@ -441,28 +440,18 @@
   <img id="lb-img" src="" alt="">
 </div>
 
-</div>
-
 <script type="module">
 import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, push, onValue, query, limitToLast, get, set, remove }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-
 // ── CONFIG PARSER ──
-// Extracts each Firebase field by regex instead of JSON.parse — immune to
-// hidden Unicode chars, control characters, or copy-paste encoding issues.
 function parseFirebaseConfig(raw) {
-  // Strip hidden/control chars that break JSON.parse but survive copy-paste
   const clean = raw.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, ' ');
-
   function extract(key) {
-    // Match:  key   :   "value"   or   key   :   'value'
-    // Tolerates whitespace, hidden chars between key and colon and quote
     const m = clean.match(new RegExp(key + '\\s*:\\s*["\']([^"\']+)["\']'));
     return m ? m[1].trim() : null;
   }
-
   const cfg = {
     apiKey:            extract('apiKey'),
     authDomain:        extract('authDomain'),
@@ -472,11 +461,9 @@ function parseFirebaseConfig(raw) {
     messagingSenderId: extract('messagingSenderId'),
     appId:             extract('appId'),
   };
-
   if (!cfg.apiKey)      throw new Error('apiKey not found — paste the full firebaseConfig block');
   if (!cfg.databaseURL) throw new Error('databaseURL not found — make sure Realtime Database is enabled in Firebase');
   if (!cfg.projectId)   throw new Error('projectId not found');
-
   return cfg;
 }
 
@@ -496,7 +483,6 @@ window.parseAndFill = () => {
     if (cfg.projectId)   document.getElementById('f-projectid').value = cfg.projectId;
   } catch(e) {
     showSetupError('Could not parse config: ' + e.message);
-   
   }
 };
 
@@ -530,7 +516,6 @@ window.connectFirebase = async () => {
       setTimeout(() => reject(new Error('Timeout — check Database URL and internet connection')), 8000);
     });
 
-   
     saveConfig({ apiKey, authDomain: `${projId}.firebaseapp.com`, databaseURL: dbURL, projectId: projId, storageBucket: `${projId}.appspot.com`, channel });
     showScreen('mode-screen');
     initFirebase();
@@ -551,7 +536,6 @@ function initFirebase() {
     db = getDatabase(app);
     chatRef = ref(db, `${cfg.channel}/messages`);
     dbReady = true;
-   
     const badge = document.getElementById('db-badge');
     if (badge) badge.textContent = '● ' + cfg.databaseURL.replace('https://','').split('.')[0];
     runDailyCleanup(cfg.channel);
@@ -569,11 +553,8 @@ async function runDailyCleanup(channel) {
       const msgsRef = ref(db, `${channel}/messages`);
       await remove(msgsRef);
       await set(cleanupRef, Date.now());
-     
     }
-  } catch(e) {
-   
-  }
+  } catch(e) { }
 }
 
 // ── SCREENS ──
@@ -635,21 +616,28 @@ function subscribeMessages() {
       const d = child.val();
       msgs.push({ key: child.key, from: d.from, text: d.text, ts: d.ts || 0, type: d.type || 'text', data: d.data, filename: d.filename, filesize: d.filesize, mimeType: d.mimeType });
     });
-   
+
     renderMessages(msgs);
 
     const other = myMode === 'school' ? 'phone' : 'school';
     const last = [...msgs].reverse().find(m => m.from === other);
     setStatus('ok', last ? 'Last msg ' + fmtTime(last.ts) : 'Waiting for messages…');
   }, (err) => {
-   
     setStatus('err', 'DB error: ' + err.message);
   });
 }
 
+// ── PDF HELPER ──
+function b64toBlob(b64, mime) {
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
 // ── FILE HANDLING ──
 const MAX_IMAGE_SIZE = 700 * 1024;
-const MAX_PDF_SIZE   = 700 * 1024;
+const MAX_PDF_SIZE   = 500 * 1024;
 let pendingFile = null;
 
 window.triggerFileInput = () => document.getElementById('file-input').click();
@@ -659,7 +647,6 @@ window.handleFileSelected = async (e) => {
   e.target.value = '';
   if (!file) return;
 
-
   const isPdf   = file.type === 'application/pdf';
   const isImage = ['image/png','image/jpeg','image/webp'].includes(file.type);
 
@@ -667,13 +654,12 @@ window.handleFileSelected = async (e) => {
 
   if (isPdf) {
     if (file.size > MAX_PDF_SIZE) {
-      alert(`PDF is too large (${fmtBytes(file.size)}). Max size is 700 KB.\n\nTip: compress it at ilovepdf.com first.`);
+      alert(`PDF is too large (${fmtBytes(file.size)}). Max size is 500 KB.\n\nTip: compress it at ilovepdf.com first.`);
       return;
     }
     const b64 = await fileToBase64(file);
     pendingFile = { type: 'pdf', data: b64, filename: file.name, filesize: file.size, mimeType: file.type };
     showFpBar(null, file.name, file.size, false);
-   
   } else {
     try {
       const compressed = await compressImage(file);
@@ -685,7 +671,6 @@ window.handleFileSelected = async (e) => {
       pendingFile = { type: 'image', data: b64, filename: file.name, filesize: compressed.blob.size, mimeType: compressed.mime, thumbSrc: compressed.thumbSrc };
       showFpBar(compressed.thumbSrc, file.name, compressed.blob.size, true);
     } catch(err) {
-     
       alert('Could not process image: ' + err.message);
     }
   }
@@ -793,12 +778,10 @@ window.sendMessage = async () => {
       const payload = { from: myMode, ts: Date.now(), type: f.type, data: f.data, filename: f.filename, filesize: f.filesize, mimeType: f.mimeType };
       if (text) payload.text = text;
       await push(chatRef, payload);
-     
     }
 
     if (text && !hasFile) {
       await push(chatRef, { from: myMode, text, ts: Date.now(), type: 'text' });
-     
     }
   } catch(e) {
     setStatus('err', 'Send failed: ' + e.message);
@@ -818,11 +801,9 @@ window.sendAlert = async () => {
     const alertsRef = ref(db, `${cfg.channel}/alerts`);
     await push(alertsRef, { from: 'school', ts: Date.now() });
     btn.textContent = '✓ Alert sent!';
-   
     setTimeout(() => { btn.textContent = '🚨 Alert'; btn.disabled = false; }, 3000);
   } catch(e) {
     btn.textContent = '🚨 Alert'; btn.disabled = false;
-   
     alert('Alert failed: ' + e.message);
   }
 };
@@ -873,18 +854,35 @@ function renderMessages(msgs) {
       }
       const ts = document.createElement('span'); ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
       bubble.appendChild(ts);
+
     } else if (msg.type === 'pdf' && msg.data) {
+      // ── FIX: use blob URL on click, never inject giant data URL into DOM ──
       bubble = document.createElement('div');
       bubble.className = 'bubble media';
-      const dataUrl = `data:application/pdf;base64,${msg.data}`;
-      const card = document.createElement('a');
-      card.className = 'pdf-card'; card.href = dataUrl;
-      card.download = msg.filename || 'document.pdf';
-      card.onclick = (e) => e.stopPropagation();
+      const card = document.createElement('div');
+      card.className = 'pdf-card';
+      card.style.cursor = 'pointer';
       card.innerHTML = `<span class="pdf-icon">📄</span><div class="pdf-info"><div class="pdf-name">${esc(msg.filename||'document.pdf')}</div><div class="pdf-size">${fmtBytes(msg.filesize||0)} · tap to download</div></div>`;
+      card.onclick = (e) => {
+        e.stopPropagation();
+        try {
+          const blob = b64toBlob(msg.data, msg.mimeType || 'application/pdf');
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = msg.filename || 'document.pdf';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 3000);
+        } catch(err) {
+          alert('Could not open PDF: ' + err.message);
+        }
+      };
       bubble.appendChild(card);
       const ts = document.createElement('span'); ts.className = 'ts'; ts.textContent = fmtTime(msg.ts);
       bubble.appendChild(ts);
+
     } else {
       bubble = document.createElement('div');
       bubble.className = 'bubble ' + (isMine ? 'sent' : 'received');
@@ -910,6 +908,8 @@ function setStatus(level, text) {
   document.getElementById('status-text').textContent = text;
 }
 
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 // ── HELPERS ──
 window.handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.sendMessage(); } };
 window.autoResize = (el) => { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; };
@@ -929,8 +929,6 @@ function fmtBytes(b) {
 }
 
 // ── IDLE SESSION LOCK ──
-// After 30 min of inactivity, wipe the saved config from memory (not localStorage)
-// so the user must re-enter credentials to send. Protect shared devices.
 let _idleTimer = null;
 function resetIdleTimer() {
   if (_idleTimer) clearTimeout(_idleTimer);
@@ -938,7 +936,6 @@ function resetIdleTimer() {
     if (myMode) {
       dbReady = false; db = null;
       setStatus('warn','Session expired — refresh to reconnect');
-     
     }
   }, 30 * 60 * 1000);
 }
